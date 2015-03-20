@@ -87,6 +87,19 @@ static const ShellConfig shell_cfg1 = {
 #define STEPPER_YELLOW  2
 #define STEPPER_ORANGE  3
 
+void ramp(bool up, int ch)
+{
+    int i;
+    for (i = 0; i <= PWM_MAX; i++) {
+        if (up) {
+            pwmEnableChannel(&PWMD3, ch, i);
+        } else {
+            pwmEnableChannel(&PWMD3, ch, PWM_MAX - i);
+        }
+        chThdSleepMicroseconds(100);
+    }
+}
+
 static THD_WORKING_AREA(wa_stepper_thd, 128);
 static THD_FUNCTION(_stepper_thd, arg)
 {
@@ -96,24 +109,24 @@ static THD_FUNCTION(_stepper_thd, arg)
     pwmEnableChannel(&PWMD3, 3, 0);
     // 4096 steps per rev
 
+    pwmEnableChannel(&PWMD3, STEPPER_ORANGE, PWM_MAX);
     while (1) {
-        pwmEnableChannel(&PWMD3, STEPPER_ORANGE, PWM_MAX);
-        chThdSleepMilliseconds(1);
-        pwmEnableChannel(&PWMD3, STEPPER_YELLOW, PWM_MAX);
-        chThdSleepMilliseconds(1);
-        pwmEnableChannel(&PWMD3, STEPPER_ORANGE, 0);
-        chThdSleepMilliseconds(1);
-        pwmEnableChannel(&PWMD3, STEPPER_PINK, PWM_MAX);
-        chThdSleepMilliseconds(1);
-        pwmEnableChannel(&PWMD3, STEPPER_YELLOW, 0);
-        chThdSleepMilliseconds(1);
-        pwmEnableChannel(&PWMD3, STEPPER_BLUE, PWM_MAX);
-        chThdSleepMilliseconds(1);
-        pwmEnableChannel(&PWMD3, STEPPER_PINK, 0);
-        chThdSleepMilliseconds(1);
-        pwmEnableChannel(&PWMD3, STEPPER_ORANGE, PWM_MAX);
-        chThdSleepMilliseconds(1);
-        pwmEnableChannel(&PWMD3, STEPPER_BLUE, 0);
+        // chThdSleepMicroseconds(1000);
+        ramp(1, STEPPER_YELLOW);
+        // chThdSleepMicroseconds(1000);
+        ramp(0, STEPPER_ORANGE);
+        // chThdSleepMicroseconds(1000);
+        ramp(1, STEPPER_PINK);
+        // chThdSleepMicroseconds(1000);
+        ramp(0, STEPPER_YELLOW);
+        // chThdSleepMicroseconds(1000);
+        ramp(1, STEPPER_BLUE);
+        // chThdSleepMicroseconds(1000);
+        ramp(0, STEPPER_PINK);
+        // chThdSleepMicroseconds(1000);
+        ramp(1, STEPPER_ORANGE);
+        // chThdSleepMicroseconds(1000);
+        ramp(0, STEPPER_BLUE);
     }
     return 0;
 }
@@ -139,7 +152,7 @@ int main(void) {
 
 
     static const PWMConfig pwmcfg = {
-        20000, // PWM freq
+        PWM_MAX*20000,      // counter freq
         PWM_MAX,   // period [cycles]
         NULL,
         {
